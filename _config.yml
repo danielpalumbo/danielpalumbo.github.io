@@ -85,9 +85,9 @@ author:
   bio              : "Harvard PhD candidate in astronomy and data scientist with the Event Horizon Telescope."
   location         : "Location"
   employer         :
-  pubmed           : "https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
+  pubmed           : #"https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
   googlescholar    : "https://scholar.google.com/citations?user=qri7fksAAAAJ&hl=en"
-  email            :
+  email            : "daniel.palumbo@cfa.harvard.edu"
   researchgate     :  # example: "https://www.researchgate.net/profile/yourprofile"
   uri              :
   bitbucket        :
