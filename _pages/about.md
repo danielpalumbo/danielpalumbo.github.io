@@ -8,7 +8,7 @@ redirect_from:
   - /about.html
 ---
 
-Links: [CV](https://www.overleaf.com/read/bccjjmwfwvhg), [ADS Library](https://ui.adsabs.harvard.edu/public-libraries/aASJT2ZbRme_hwqW-v1UkQ)&sort=date%20desc%2C%20bibcode%20desc).
+Links: [CV](https://www.overleaf.com/read/bccjjmwfwvhg), [ADS Library](https://ui.adsabs.harvard.edu/public-libraries/aASJT2ZbRme_hwqW-v1UkQ).
 
 Hello there, and welcome! I am a PhD student in astronomy working primarily on data analysis with the Event Horizon Telescope. Much of my work interfaces very closely with computational theory efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets?
 
