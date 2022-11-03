@@ -16,6 +16,8 @@ My most recent work has focused on building lightning-fast semi-analytic emissiv
 
 I am currently on the postdoc market; if you would like to invite me to your institution to speak, please contact me via my email on the left sidebar. I am also always happy to strike up new collaborations across institutions, and to talk to students considering entering the field or working with the Event Horizon Telescope, so don't be a stranger!
 
+Before you go, consider signing on to the [Astronomy and Astrophysics LGBTQIA+ Outlist or Ally List](https://astro-outlist.github.io/) to help make astronomy a bit more welcoming.
+
 
 <!-- 
 
