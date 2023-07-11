@@ -1,6 +1,6 @@
 ---
 permalink: /
-title: "Daniel Palumbo, EHT Data Scientist"
+title: "Daniel Palumbo, Black Hole Obsessive"
 excerpt: "About me"
 author_profile: true
 redirect_from: 
@@ -10,9 +10,9 @@ redirect_from:
 
 Links: [CV](https://www.overleaf.com/read/bccjjmwfwvhg), [Publication List](https://www.overleaf.com/read/fcxyvsjdhcxh) [ADS Library](https://ui.adsabs.harvard.edu/public-libraries/aASJT2ZbRme_hwqW-v1UkQ).
 
-Hello there, and welcome! I am a postdoctoral fellow at the Black Hole Initiative. I work primarily on data analysis with the Event Horizon Telescope. Much of my work interfaces very closely with computational theory efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets?
+Hello there, and welcome! I am a postdoctoral fellow at the Black Hole Initiative. I work primarily on data analysis with the Event Horizon Telescope. Much of my work interfaces very closely with computational theory efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets? Most excitingly, can we see light itself orbit these objects?
 
-My most recent work has focused on building lightning-fast semi-analytic emissivity modeling code for fitting VLBI observations of supermassive black holes. I am also known for the "PWP" (Palumbo, Wong, and Prather -- also Polarization Whirliness Parameter!) decomposition of polarized images, which was used to determine that M 87* is magnetically arrested. I extended this work to connect to properties of strongly lensed light emitted near a black hole (the so-called "photon ring"), which I hope to use to measure M 87\*'s spin in the near future.
+My most recent work has focused on building a new interferometric scheme for detecting the polarized light in photon rings in Messier 87\* and Sagittarius A\*. I recently built a lightning-fast semi-analytic emissivity modeling code for fitting VLBI observations of supermassive black holes. I am also known for the "PWP" (Palumbo, Wong, and Prather -- also Polarization Whirliness Parameter!) decomposition of polarized images, which was used to determine that M 87\* is magnetically arrested. I extended this work to connect to properties of strongly lensed light emitted near a black hole (the so-called "photon ring"), which I hope to use to measure M87\*'s spin in the near future.
 
 I am always happy to strike up new collaborations across institutions, and to talk to students considering entering the field or working with the Event Horizon Telescope, so don't be a stranger!
 
