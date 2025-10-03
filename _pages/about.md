@@ -1,6 +1,6 @@
 ---
 permalink: /
-title: "Daniel Palumbo, Black Hole Obsessive"
+title: "Daniel Palumbo, Black Hole Astrophysicist"
 excerpt: "About me"
 author_profile: true
 redirect_from: 
@@ -10,7 +10,7 @@ redirect_from:
 
 Links: [CV](https://www.overleaf.com/read/bccjjmwfwvhg), [Publication List](https://www.overleaf.com/read/fcxyvsjdhcxh) [ADS Library](https://ui.adsabs.harvard.edu/public-libraries/aASJT2ZbRme_hwqW-v1UkQ).
 
-Hello there, and welcome! I am a postdoctoral fellow at the Black Hole Initiative. I work closely with the Event Horizon Telescope, particularly in providing theoretical analyses of EHT data, and in shaping the longer-term science vision of next-generation EHT expansions. I am also the Simulations Lead and the Photon Ring Science Co-Lead for the Black Hole Explorer mission. Much of my work interfaces very closely with computational efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets? Most excitingly, can we see light itself orbit these objects?
+Hello there, and welcome! I am a postdoctoral fellow at the Black Hole Initiative. I work closely with the Event Horizon Telescope, particularly in providing theoretical analyses of EHT data, and in shaping the longer-term science vision of next-generation EHT expansions. I am also the Simulations Lead and the Photon Ring Science Co-Lead for the Black Hole Explorer mission. Much of my work interfaces very closely with computational efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets? Can we see light itself orbit these objects?
 
 My most recent work has focused on the signatures of supermassive black hole spin in the twisting of polarized light emitted near its horizon. My results show a promising, linear relationship with spin that will help us measure the spin of Messier 87\* and reinforce the (much easier) spin measurement case for Sagittarius A\*. Meanwhile, I remain optimistic that the photon ring detection experiment I proposed in 2023 (and that has since been fleshed out in amazing work by my students!) will show the first hints of the photon ring in ground-based observations this decade.
 
