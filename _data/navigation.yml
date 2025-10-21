@@ -2,6 +2,9 @@
 main:
   # - title: "Publications"
   #   url: /publications/
+  
+ - title: "Galactic Petri Dish"
+   url: /petri/
 
   # - title: "Talks"
   #   url: /talks/    
