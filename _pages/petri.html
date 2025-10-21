@@ -1,0 +1,842 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Galactic Petri Dish Simulation</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a22;
+    --text: #e9eef6;
+    --muted: #aab3c2;
+    --accent: #4ea1ff;
+    --accent-2: #75d47f;
+    --warn: #ffce6b;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 12px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid #202636;
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+  }
+  .panel h1 {
+    font-size: 18px;
+    margin: 0 0 4px;
+    color: var(--text);
+  }
+  .panel .desc {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 100px;
+    gap: 8px 10px;
+    align-items: center;
+  }
+  .grid label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .grid input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid #2a3347;
+    background: #0e1220;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  button {
+    appearance: none;
+    background: var(--accent);
+    border: none;
+    color: #08111f;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: #2a3347;
+    color: var(--text);
+    border: 1px solid #3a4661;
+  }
+  button.warn {
+    background: var(--warn);
+    color: #3f3000;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .canvas-wrap {
+    position: relative;
+    height: 100%;
+    background: #0b0f19;
+    border: 1px solid #202636;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: radial-gradient(1200px 800px at 30% 20%, #0d1322, #0b0f19 60%);
+  }
+  .legend {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    background: rgba(10, 14, 23, 0.8);
+    border: 1px solid #23304d;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--muted);
+    backdrop-filter: blur(4px);
+  }
+  .legend div { margin: 4px 0; white-space: nowrap; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+  .sq   { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+  .lbl  { color: var(--text); }
+  .footer {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .small { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <h1>Galactic Disk Simulation</h1>
+    <div class="desc">
+      Habitable stellar systems advance to detectable SIs as independent Poisson distributions, then harden against disruption after a specified time. Their zones of control extend slower than light, turning other systems into detection/disruption outposts.
+    </div>
+
+    <div class="grid">
+      <label for="L">Galaxy diameter L (ly)</label>
+      <input id="L" type="number" min="1" step="1000" value="100000" />
+      <label for="H">Habitable systems H</label>
+      <input id="H" type="number" min="0" step="1" value="10" />
+      <label for="U">Uninhabitable systems U</label>
+      <input id="U" type="number" min="0" step="1" value="100" />
+      <label for="dt">Time step dt (years)</label>
+      <input id="dt" type="number" min="1" step="1000" value="2000" />
+      <label for="lambda">λ (per year, 0→1 Poisson)</label>
+      <input id="lambda" type="number" min="0" step="0.000001" value="0.0001" />
+      <label for="tau">Hardening time (years, 1→2)</label>
+      <input id="tau" type="number" min="0" step="1000" value="50000" />
+      <label for="betaZ">β<sub>zoc</sub> (fraction of c)</label>
+      <input id="betaZ" type="number" min="0" max="1" step="0.01" value="0.10" />
+      <label for="betaP">β<sub>p</sub> projectile (fraction of c)</label>
+      <input id="betaP" type="number" min="0" max="1" step="0.01" value="0.80" />
+      <label for="seed">Random seed (integer)</label>
+      <input id="seed" type="number" step="1" value="42" />
+    </div>
+
+    <div class="controls">
+      <button id="restart" class="warn">Restart</button>
+      <button id="advance" class="">Advance 1 step</button>
+      <button id="advance10" class="secondary">Advance ×10</button>
+      <button id="clear" class="secondary">Clear labels</button>
+    </div>
+
+    <div class="stats">
+      <div><span class="lbl">Step:</span> <span id="statStep">0</span></div>
+      <div><span class="lbl">Time (yr):</span> <span id="statTime">0</span></div>
+      <div><span class="lbl">Alive civs:</span> <span id="statAlive">0</span></div>
+      <div><span class="lbl">In‑flight proj.:</span> <span id="statProj">0</span></div>
+    </div>
+
+    <div class="footer">
+      Tips:
+      <ul class="small">
+        <li>Signature zone expands at c (dotted outline). ZOC expands at β<sub>zoc</sub>c (faint fill).</li>
+        <li>Stage‑1/2 systems show a label: <code>C&lt;id&gt;/S&lt;stage&gt;</code>.</li>
+        <li>Disruptors vanish when they hit or if their aimed‑at civ is already suppressed.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="canvas-wrap">
+    <canvas id="canvas"></canvas>
+    <div class="legend" id="legend">
+      <div><span class="dot" style="background:#999"></span> Uninhabitable</div>
+      <div><span class="dot" style="background:#3B68FF"></span> Habitable (Stage 0)</div>
+      <div><span class="dot" style="background:#ff8c00;border:1px solid #000"></span> Detectable SI (Stage 1)</div>
+      <div><span class="sq"  style="background:#e24a33;border:1px solid #000"></span> Hardened SI (Stage 2)</div>
+      <div>○ control ring = ownership</div>
+      <div>◌ Signature (c); ● ZOC (β<sub>zoc</sub>c)</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Small utilities ----------
+const TAU = Math.PI * 2;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+function fmtInt(n){ return n.toLocaleString(); }
+function fmtNum(n){ return n.toLocaleString(undefined, {maximumFractionDigits: 3}); }
+
+// Seeded RNG (Mulberry32)
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function() {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Palette for up to 10 civilizations (cycles)
+const palette = [
+  "#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
+  "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"
+];
+function civColor(civId){
+  if(!civId) return "#888";
+  return palette[(civId-1) % palette.length];
+}
+
+// ---------- Geometry mapping (ly -> canvas px) ----------
+class Mapper {
+  constructor(canvas, radiusLy){
+    this.canvas = canvas;
+    this.setRadius(radiusLy);
+    this.resize();
+  }
+  setRadius(radiusLy){ this.R = radiusLy; }
+  resize(){
+    const dpr = window.devicePixelRatio || 1;
+    const w = this.canvas.clientWidth || 800;
+    const h = this.canvas.clientHeight || 800;
+    this.canvas.width  = Math.floor(w * dpr);
+    this.canvas.height = Math.floor(h * dpr);
+    this.ctx = this.canvas.getContext("2d");
+    this.ctx.setTransform(dpr,0,0,dpr,0,0); // draw in CSS pixels
+    this.cx = w/2; this.cy = h/2;
+    this.scale = Math.min(w, h) * 0.45 / this.R; // px per ly
+    this.radiusPx = this.R * this.scale;
+  }
+  toPx(x, y){
+    // +y up in sim -> -y in canvas
+    return [this.cx + x * this.scale, this.cy - y * this.scale];
+  }
+}
+
+// ---------- Core data types ----------
+function euclid(ax, ay, bx, by){ const dx=ax-bx, dy=ay-by; return Math.hypot(dx, dy); }
+
+class Civilization {
+  constructor(civId, originSys, t_stage1){
+    this.civ_id = civId;
+    this.origin_sys_id = originSys.sys_id;
+    this.t_stage1 = t_stage1;
+    this.t_stage2 = null;
+    this.t_end    = null;
+    this.ox = originSys.x;
+    this.oy = originSys.y;
+  }
+  aliveAt(t){
+    return !(this.t_end !== null && t >= this.t_end);
+  }
+  rSig(t){
+    if(!this.aliveAt(t)) return Math.max(0, (this.t_end - this.t_stage1));
+    return Math.max(0, t - this.t_stage1);
+  }
+  rZoc(t, betaZ){
+    if(!this.aliveAt(t)) return Math.max(0, (this.t_end - this.t_stage1)) * betaZ;
+    return Math.max(0, (t - this.t_stage1) * betaZ);
+  }
+}
+
+// ---------- Simulation ----------
+class GalaxySim {
+  constructor(params){
+    this.p = {...params};
+    this.R = this.p.L / 2;
+    this.rand = mulberry32(this.p.seed >>> 0);
+    this.reset();
+  }
+
+  reset(){
+    this.t = 0;
+    this.stepCount = 0;
+    this.systems = [];
+    this.habIds = [];
+    this.unhabIds = [];
+    this.civilizations = new Map(); // civ_id -> Civilization
+    this.nextCivId = 1;
+    this.disruptors = [];
+    this.nextProjId = 1;
+    this.firedPairs = new Set(); // key: `${originSysId}|${targetCivId}`
+    this.randomizeSystems();
+  }
+
+  randomizeSystems(){
+    const total = this.p.H + this.p.U;
+    const pos = this.sampleDisk(total, this.R);
+    for(let i=0;i<this.p.H;i++){
+      const [x,y] = pos[i];
+      this.systems.push({
+        sys_id:i, kind:'hab', x, y,
+        stage:0, civ_id:null, t_stage1:null, t_stage2:null,
+        owner_civ_id:null, t_claim:null
+      });
+      this.habIds.push(i);
+    }
+    for(let j=0;j<this.p.U;j++){
+      const idx = this.p.H + j;
+      const [x,y] = pos[idx];
+      this.systems.push({
+        sys_id:idx, kind:'unhab', x, y,
+        stage:null, civ_id:null, t_stage1:null, t_stage2:null,
+        owner_civ_id:null, t_claim:null
+      });
+      this.unhabIds.push(idx);
+    }
+  }
+
+  sampleDisk(n, R){
+    const out = new Array(n);
+    for(let i=0;i<n;i++){
+      const theta = this.rand() * TAU;
+      const r = R * Math.sqrt(this.rand());
+      out[i] = [r*Math.cos(theta), r*Math.sin(theta)];
+    }
+    return out;
+  }
+
+  getSystem(id){ return this.systems[id]; }
+
+  // One simulation step
+  step(){
+    const dt = this.p.dt;
+    this.t += dt;
+    this.stepCount++;
+
+    // 1) Stage 0 -> 1 (Poisson with exact time in step)
+    this._stage0to1();
+
+    // 2) Stage 1 -> 2 deterministic
+    this._stage1to2();
+
+    // 3) Resolve hits up to t
+    this._processHits(this.t);
+
+    // 4) Update ZOC claims (alive civs)
+    this._updateClaims(this.t);
+
+    // 5) Fire new disruptors (origin × target civ)
+    this._fireNewDisruptors(this.t);
+
+    // 6) Resolve hits again (for immediate arrivals)
+    this._processHits(this.t);
+
+    // 7) Optional hygiene
+    this._pruneFiredPairs();
+  }
+
+  _stage0to1(){
+    const {lambda, dt} = this.p;
+    if(lambda <= 0) return;
+    const pStep = 1 - Math.exp(-lambda * dt);
+    for(const hid of this.habIds){
+      const s = this.getSystem(hid);
+      if(s.stage !== 0) continue;
+      if(this.rand() < pStep){
+        const offset = this._truncExp(lambda, dt);
+        const tevent = this.t - this.p.dt + offset; // t_prev + offset
+        s.stage = 1;
+        s.t_stage1 = tevent;
+        s.t_stage2 = null;
+
+        const civId = this.nextCivId++;
+        s.civ_id = civId;
+        const civ = new Civilization(civId, s, tevent);
+        this.civilizations.set(civId, civ);
+      }
+    }
+  }
+
+  _stage1to2(){
+    const tau = this.p.tau;
+    for(const hid of this.habIds){
+      const s = this.getSystem(hid);
+      if(s.stage !== 1 || s.t_stage1 === null) continue;
+      const t_mature = s.t_stage1 + tau;
+      if(t_mature <= this.t){
+        s.stage = 2;
+        s.t_stage2 = t_mature;
+        if(s.civ_id && this.civilizations.has(s.civ_id)){
+          this.civilizations.get(s.civ_id).t_stage2 = t_mature;
+        }
+      }
+    }
+  }
+
+  _processHits(upToT){
+    for(const p of this.disruptors){
+      if(p.status !== "in_flight") continue;
+      if(p.t_eta <= upToT){
+        const target = this.getSystem(p.target_hab_sys_id);
+        const t_hit = p.t_eta;
+
+        if(target.t_stage1 !== null && t_hit >= target.t_stage1){
+          const tStage2 = target.t_stage1 + this.p.tau;
+          const isStage2 = (t_hit >= tStage2);
+          if(!isStage2){
+            this._suppressAtHit(target, t_hit);
+          }
+        }
+
+        p.status = "hit";
+        p.t_hit = t_hit;
+      }
+    }
+  }
+
+  _suppressAtHit(targetHabSystem, t_hit){
+    const civId = targetHabSystem.civ_id;
+    // Reset star to stage 0
+    targetHabSystem.stage = 0;
+    targetHabSystem.t_stage1 = null;
+    targetHabSystem.t_stage2 = null;
+    targetHabSystem.civ_id = null;
+
+    // Deactivate civ record & remove control claims
+    if(civId && this.civilizations.has(civId)){
+      const civ = this.civilizations.get(civId);
+      if(civ.t_end === null || t_hit < civ.t_end) civ.t_end = t_hit;
+      for(const s of this.systems){
+        if(s.owner_civ_id === civId){
+          s.owner_civ_id = null;
+          s.t_claim = null;
+        }
+      }
+    }
+  }
+
+  _updateClaims(upToT){
+    const betaZ = this.p.betaZ;
+    const alive = Array.from(this.civilizations.values()).filter(c => c.aliveAt(upToT));
+
+    // Ensure each alive civ claims its origin at t_stage1
+    for(const civ of alive){
+      const origin = this.getSystem(civ.origin_sys_id);
+      if(origin.owner_civ_id === null || origin.owner_civ_id === civ.civ_id){
+        origin.owner_civ_id = civ.civ_id;
+        origin.t_claim = civ.t_stage1;
+      }
+    }
+
+    // Earliest-arrival wins for unowned systems
+    for(const s of this.systems){
+      if(s.owner_civ_id !== null) continue;
+      let bestT = null;
+      let bestCiv = null;
+      for(const civ of alive){
+        const d = euclid(s.x, s.y, civ.ox, civ.oy);
+        const tArr = civ.t_stage1 + (d / (betaZ)); // c=1 ly/yr
+        if(tArr <= upToT){
+          if(bestT === null || tArr < bestT - 1e-9 || (Math.abs(tArr - bestT) <= 1e-9 && civ.civ_id < bestCiv.civ_id)){
+            bestT = tArr; bestCiv = civ;
+          }
+        }
+      }
+      if(bestCiv){
+        s.owner_civ_id = bestCiv.civ_id;
+        s.t_claim = bestT;
+      }
+    }
+  }
+
+  _fireNewDisruptors(upToT){
+    const aliveTargets = Array.from(this.civilizations.values()).filter(c => c.aliveAt(upToT));
+
+    const systemsByOwner = new Map();
+    for(const s of this.systems){
+      if(s.owner_civ_id !== null){
+        if(!systemsByOwner.has(s.owner_civ_id)) systemsByOwner.set(s.owner_civ_id, []);
+        systemsByOwner.get(s.owner_civ_id).push(s);
+      }
+    }
+
+    for(const target of aliveTargets){
+      const tx = target.ox, ty = target.oy;
+      for(const [ownerCivId, lst] of systemsByOwner.entries()){
+        if(ownerCivId === target.civ_id) continue;
+        for(const originSys of lst){
+          if(originSys.sys_id === target.origin_sys_id) continue;
+
+          const pairKey = `${originSys.sys_id}|${target.civ_id}`;
+          if(this.firedPairs.has(pairKey)) continue;
+
+          const d = euclid(originSys.x, originSys.y, tx, ty);
+          const t_entry = target.t_stage1 + d; // signature at c
+          if(t_entry <= upToT){
+            this.firedPairs.add(pairKey);
+            const v = this.p.betaP; // ly/yr
+            const t_eta = t_entry + d / v;
+
+            this.disruptors.push({
+              proj_id: this.nextProjId++,
+              origin_sys_id: originSys.sys_id,
+              origin_owner_civ_at_fire: ownerCivId,
+              target_hab_sys_id: target.origin_sys_id,
+              target_civ_id: target.civ_id,
+              t_fire: t_entry,
+              distance_ly: d,
+              v_ly_per_year: v,
+              t_eta: t_eta,
+              status: "in_flight",
+              t_hit: null
+            });
+          }
+        }
+      }
+    }
+  }
+
+  _pruneFiredPairs(){
+    // Keep dedup entries only for target civs that haven't ended yet
+    const alive = new Set(Array.from(this.civilizations.values()).filter(c => c.t_end === null).map(c => c.civ_id));
+    const keep = new Set();
+    for(const key of this.firedPairs){
+      const tc = parseInt(key.split("|")[1], 10);
+      if(alive.has(tc)) keep.add(key);
+    }
+    this.firedPairs = keep;
+  }
+
+  _truncExp(lam, dt){
+    // Inverse-CDF of truncated exponential conditional on event in [0,dt]
+    const u = this.rand();
+    const v = 1 - Math.exp(-lam * dt);
+    return -Math.log(1 - v * u) / lam;
+  }
+}
+
+// ---------- Rendering ----------
+class Renderer {
+  constructor(canvas, mapper, sim){
+    this.canvas = canvas;
+    this.mapper = mapper;
+    this.sim = sim;
+    this.ctx = mapper.ctx;
+    this.labelToggle = true;
+    window.addEventListener('resize', () => {
+      mapper.resize();
+      this.draw();
+    });
+  }
+
+  setSim(sim){ this.sim = sim; }
+
+  draw(){
+    const ctx = this.ctx;
+    const {canvas} = this.mapper;
+    // clear
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+
+    // Disk boundary
+    this._drawDiskBoundary();
+
+    // Zones for alive civs
+    for(const civ of this.sim.civilizations.values()){
+      if(!civ.aliveAt(this.sim.t)) continue;
+      const rZ = civ.rZoc(this.sim.t, this.sim.p.betaZ);
+      if(rZ > 0) this._fillCircle(civ.ox, civ.oy, rZ, civColor(civ.civ_id), 0.18);
+      const rS = civ.rSig(this.sim.t);
+      if(rS > 0) this._strokeCircle(civ.ox, civ.oy, rS, civColor(civ.civ_id), 1.0, [4,3]);
+    }
+
+    // Systems: uninhabitable
+    const un = this.sim.unhabIds.map(id => this.sim.getSystem(id));
+    for(const s of un) this._drawPoint(s.x, s.y, 2.5, "#999");
+
+    // Systems: habitable
+    const hab = this.sim.habIds.map(id => this.sim.getSystem(id));
+    for(const s of hab){
+      if(s.stage === 0){
+        this._drawPoint(s.x, s.y, 3.6, "#3B68FF"); // stage 0
+      } else if(s.stage === 1){
+        this._drawPoint(s.x, s.y, 5.0, civColor(s.civ_id), true);
+      } else if(s.stage === 2){
+        this._drawSquare(s.x, s.y, 6.5, civColor(s.civ_id), true);
+      }
+    }
+
+    // Ownership rings
+    for(const s of this.sim.systems){
+      if(s.owner_civ_id !== null){
+        this._ring(s.x, s.y, 7.5, civColor(s.owner_civ_id));
+      }
+    }
+
+    // Disruptors (in flight only; aimed-at civ still alive)
+    const segs = [];
+    const cols = [];
+    for(const p of this.sim.disruptors){
+      if(p.status !== "in_flight") continue;
+      if(this.sim.t <= p.t_fire || this.sim.t >= p.t_eta) continue;
+
+      const aimed = this.sim.civilizations.get(p.target_civ_id);
+      if(!aimed || !aimed.aliveAt(this.sim.t)) continue;
+
+      const o = this.sim.getSystem(p.origin_sys_id);
+      const t = this.sim.getSystem(p.target_hab_sys_id);
+      const distTraveled = (this.sim.t - p.t_fire) * p.v_ly_per_year;
+      const frac = Math.min(1, distTraveled / p.distance_ly);
+      if(frac <= 0 || frac >= 1) continue;
+
+      const px = o.x + (t.x - o.x) * frac;
+      const py = o.y + (t.y - o.y) * frac;
+      const p0 = this.mapper.toPx(o.x, o.y);
+      const p1 = this.mapper.toPx(px, py);
+      segs.push([p0, p1]);
+      cols.push(civColor(p.origin_owner_civ_at_fire));
+    }
+    this._lineSegments(segs, cols, 1.2, 0.95);
+
+    // Labels for stage 1/2 habitable systems
+    if(this.labelToggle){
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.textBaseline = "top";
+      for(const s of hab){
+        if((s.stage === 1 || s.stage === 2) && s.civ_id !== null){
+          const [x,y] = this.mapper.toPx(s.x, s.y);
+          const label = `C${s.civ_id}/S${s.stage}`;
+          this._textLabel(x+6, y+6, label);
+        }
+      }
+    }
+
+    // Update stats
+    document.getElementById("statStep").textContent = fmtInt(this.sim.stepCount);
+    document.getElementById("statTime").textContent = fmtInt(this.sim.t);
+    const alive = Array.from(this.sim.civilizations.values()).filter(c => c.aliveAt(this.sim.t)).length;
+    document.getElementById("statAlive").textContent = fmtInt(alive);
+    const inflight = this.sim.disruptors.filter(p => p.status === "in_flight" && this.sim.t > p.t_fire && this.sim.t < p.t_eta)
+                                        .filter(p => {
+                                          const aimed = this.sim.civilizations.get(p.target_civ_id);
+                                          return aimed && aimed.aliveAt(this.sim.t);
+                                        }).length;
+    document.getElementById("statProj").textContent = fmtInt(inflight);
+  }
+
+  _drawDiskBoundary(){
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.strokeStyle = "rgba(180,200,255,0.45)";
+    ctx.setLineDash([6,4]);
+    ctx.lineWidth = 1;
+    const [cx,cy] = [this.mapper.cx, this.mapper.cy];
+    ctx.beginPath();
+    ctx.arc(cx, cy, this.mapper.radiusPx, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  _drawPoint(x,y,r,color, outline=false){
+    const ctx = this.ctx;
+    const [px,py] = this.mapper.toPx(x,y);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, TAU);
+    ctx.fillStyle = color;
+    ctx.fill();
+    if(outline){
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  _drawSquare(x,y,half,color, outline=false){
+    const ctx = this.ctx;
+    const [px,py] = this.mapper.toPx(x,y);
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.fillRect(px-half, py-half, 2*half, 2*half);
+    if(outline){
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px-half, py-half, 2*half, 2*half);
+    }
+    ctx.restore();
+  }
+
+  _ring(x,y,r,color){
+    const ctx = this.ctx;
+    const [px,py] = this.mapper.toPx(x,y);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, TAU);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  _fillCircle(x,y,rLy,color,alpha){
+    const ctx = this.ctx;
+    const [px,py] = this.mapper.toPx(x,y);
+    const R = rLy * this.mapper.scale;
+    if(R <= 0) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(px, py, R, 0, TAU);
+    ctx.fillStyle = this._rgba(color, alpha);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  _strokeCircle(x,y,rLy,color,width=1, dash=null){
+    const ctx = this.ctx;
+    const [px,py] = this.mapper.toPx(x,y);
+    const R = rLy * this.mapper.scale;
+    if(R <= 0) return;
+    ctx.save();
+    if(dash) ctx.setLineDash(dash);
+    ctx.strokeStyle = this._rgba(color, 0.8);
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.arc(px, py, R, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  _lineSegments(segments, colors, width, alpha=1){
+    if(!segments.length) return;
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = width;
+    ctx.globalAlpha = alpha;
+    for(let i=0;i<segments.length;i++){
+      const [[x0,y0],[x1,y1]] = segments[i];
+      ctx.strokeStyle = colors[i] || "#fff";
+      ctx.beginPath();
+      ctx.moveTo(x0,y0);
+      ctx.lineTo(x1,y1);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  _textLabel(x,y,text){
+    const ctx = this.ctx;
+    ctx.save();
+    const padding = 2;
+    const metrics = ctx.measureText(text);
+    const w = metrics.width + padding*2;
+    const h = 14 + padding*2;
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillRect(x-1, y-1, w, h);
+    ctx.fillStyle = "#000";
+    ctx.fillText(text, x+padding-1, y+padding-1);
+    ctx.restore();
+  }
+
+  _rgba(hex, alpha){
+    // convert short list of palette hexes to rgba string with alpha
+    const c = hex.replace("#","");
+    const bigint = parseInt(c, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+}
+
+// ---------- Wire up UI ----------
+(function(){
+  const canvas = document.getElementById("canvas");
+  const mapper = new Mapper(canvas, 100000/2); // will be reset on restart
+  let sim = null;
+  let renderer = new Renderer(canvas, mapper, sim);
+
+  function readParams(){
+    const get = id => document.getElementById(id).value;
+    const L       = parseFloat(get("L"));
+    const H       = parseInt(get("H"), 10);
+    const U       = parseInt(get("U"), 10);
+    const dt      = parseFloat(get("dt"));
+    const lambda  = parseFloat(get("lambda"));
+    const tau     = parseFloat(get("tau"));
+    const betaZ   = parseFloat(get("betaZ"));
+    const betaP   = parseFloat(get("betaP"));
+    const seed    = parseInt(get("seed"), 10) || Math.floor(Math.random()*1e9);
+    return { L, H, U, dt, lambda, tau, betaZ, betaP, seed };
+  }
+
+  function restart(){
+    const p = readParams();
+    mapper.setRadius(p.L/2);
+    mapper.resize();
+    sim = new GalaxySim(p);
+    renderer.setSim(sim);
+    renderer.draw();
+  }
+
+  document.getElementById("restart").addEventListener("click", restart);
+
+  document.getElementById("advance").addEventListener("click", () => {
+    if(!sim) restart();
+    sim.step();
+    renderer.draw();
+  });
+
+  document.getElementById("advance10").addEventListener("click", () => {
+    if(!sim) restart();
+    for(let i=0;i<10;i++) sim.step();
+    renderer.draw();
+  });
+
+  document.getElementById("clear").addEventListener("click", () => {
+    renderer.labelToggle = !renderer.labelToggle;
+    renderer.draw();
+  });
+
+  // First boot
+  restart();
+})();
+</script>
+</body>
+</html>
