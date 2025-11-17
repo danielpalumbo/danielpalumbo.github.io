@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Relativistic Light-Sail Stop Criterion (Large-Sail Asymptote)</title>
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #111827; --ink: #e5e7eb; --muted: #94a3b8;
+    --accent: #38bdf8; --good: #22c55e; --bad: #ef4444; --warn: #f59e0b;
+    --border: #1f2937; --chip: #0b1220;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    background: radial-gradient(1200px 800px at 10% -10%, #0b1220 0%, var(--bg) 40%, #0b1220 100%);
+    color: var(--ink);
+  }
+  header { padding: 16px 20px 4px 20px; }
+  header h1 { margin: 0 0 8px 0; font-weight: 700; font-size: 20px; }
+  header .sub { color: var(--muted); font-size: 13px; line-height: 1.4; }
+  .container { display: grid; grid-template-columns: 370px 1fr; gap: 14px; padding: 10px 14px 20px 14px; }
+  @media (max-width: 1000px) { .container { grid-template-columns: 1fr; } }
+  .panel {
+    background: rgba(17,24,39,.72); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px; backdrop-filter: blur(6px);
+  }
+  .panel h2 { margin: 4px 0 10px 0; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  label { font-size: 12px; color: var(--muted); }
+  input[type="number"], select {
+    width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 8px;
+    border: 1px solid var(--border); background: #0b1020; color: var(--ink);
+  }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  .chip { background: var(--chip); border: 1px solid var(--border); padding: 6px 8px; border-radius: 999px; font-size: 11px; color: var(--muted); }
+  .btnbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  button {
+    padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: #0b1020; color: var(--ink); cursor: pointer;
+  }
+  button.primary { background: linear-gradient(180deg, #1e293b, #0b1020); border-color: #334155; }
+  button:hover { filter: brightness(1.1); }
+  button:disabled { opacity: .55; cursor: not-allowed; }
+  .warn {
+    display: none; background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.35);
+    color: #fde68a; padding: 8px 10px; border-radius: 8px; font-size: 12px; margin-top: 8px;
+  }
+  .warn.show { display: block; }
+  #plot { width: 100%; height: 70vh; } /* this is the RESULTS div */
+  footer { color: var(--muted); font-size: 12px; padding: 10px 14px 20px 14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Relativistic Light‑Sail Stop Criterion — Large‑Sail Asymptote</h1>
+  <div class="sub">
+    Shaded region shows where the sail eventually reaches rest in the lab frame, as a function of 4 fixed variables and two floating variables, which are plotted. Parameters are the size of the beam optics (D_c), the radius and mass of the sail r_s and m_s, the wavelength λ of the laser, the laser power P, and the spacecraft velocity β relative to the lab frame. Criterion:
+    <span class="chips">
+      <span class="chip"><b>(2π√(2π))/λ · (P·D<sub>c</sub>·r<sub>s</sub>)/(m<sub>s</sub>c³) ≥ Φ(β<sub>c</sub>)</b></span>
+      <span class="chip">Φ(β)=⅓u³−u+⅔, u=√[(1+β)/(1−β)]</span>
+      <span class="chip">Large‑sail limit: r<sub>s</sub> ≫ w<sub>0</sub>≈D<sub>c</sub>/2</span>
+    </span>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Controls -->
+  <section class="panel" id="controls">
+    <h2>Controls</h2>
+
+    <div class="row">
+      <div class="field">
+        <label for="xvar">X‑axis parameter</label>
+        <select id="xvar">
+          <option value="P">P [W]</option>
+          <option value="Dc">D_c [m]</option>
+          <option value="lambda">λ [m]</option>
+          <option value="rs">r_s [m]</option>
+          <option value="ms">m_s [kg]</option>
+          <option value="beta">β_c [–]</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="yvar">Y‑axis parameter</label>
+        <select id="yvar">
+          <option value="Dc">D_c [m]</option>
+          <option value="P">P [W]</option>
+          <option value="lambda">λ [m]</option>
+          <option value="rs">r_s [m]</option>
+          <option value="ms">m_s [kg]</option>
+          <option value="beta">β_c [–]</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Scale (X)</label>
+        <select id="xscale">
+          <option value="log">Log</option>
+          <option value="linear">Linear</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Scale (Y)</label>
+        <select id="yscale">
+          <option value="log">Log</option>
+          <option value="linear">Linear</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="xmin">X min</label>
+        <input id="xmin" type="number" step="any" placeholder="auto"/>
+      </div>
+      <div class="field">
+        <label for="xmax">X max</label>
+        <input id="xmax" type="number" step="any" placeholder="auto"/>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="ymin">Y min</label>
+        <input id="ymin" type="number" step="any" placeholder="auto"/>
+      </div>
+      <div class="field">
+        <label for="ymax">Y max</label>
+        <input id="ymax" type="number" step="any" placeholder="auto"/>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="nx">Grid NX (columns)</label>
+        <input id="nx" type="number" min="20" max="400" value="160"/>
+      </div>
+      <div class="field">
+        <label for="ny">Grid NY (rows)</label>
+        <input id="ny" type="number" min="20" max="400" value="160"/>
+      </div>
+    </div>
+
+    <div class="row">
+      <button id="autorange" class="primary" type="button">Auto‑range (include success & failure)</button>
+      <button id="swap" type="button">Swap axes</button>
+    </div>
+
+    <hr style="border-color: var(--border); border-style: solid none none; margin: 12px 0;" />
+
+    <h2>Fixed Parameters (those NOT on axes)</h2>
+    <div class="row3">
+      <div class="field" id="P_fixed_wrap">
+        <label for="P_fixed">P [W] (fixed)</label>
+        <input id="P_fixed" type="number" min="0" step="any" />
+      </div>
+      <div class="field" id="Dc_fixed_wrap">
+        <label for="Dc_fixed">D_c [m] (fixed)</label>
+        <input id="Dc_fixed" type="number" min="0" step="any" />
+      </div>
+      <div class="field" id="lambda_fixed_wrap">
+        <label for="lambda_fixed">λ [m] (fixed)</label>
+        <input id="lambda_fixed" type="number" min="0" step="any" />
+      </div>
+    </div>
+    <div class="row3">
+      <div class="field" id="rs_fixed_wrap">
+        <label for="rs_fixed">r_s [m] (fixed)</label>
+        <input id="rs_fixed" type="number" min="0" step="any" />
+      </div>
+      <div class="field" id="ms_fixed_wrap">
+        <label for="ms_fixed">m_s [kg] (fixed)</label>
+        <input id="ms_fixed" type="number" min="0" step="any" />
+      </div>
+      <div class="field" id="beta_fixed_wrap">
+        <label for="beta_fixed">β_c [–] (fixed, 0 ≤ β &lt; 1)</label>
+        <input id="beta_fixed" type="number" min="0" max="0.999999" step="any" />
+      </div>
+    </div>
+
+    <div class="warn" id="warnings"></div>
+
+    <div class="btnbar">
+      <button id="plotBtn" class="primary" type="button">Plot</button>
+      <button id="reset" type="button">Reset</button>
+    </div>
+    <div class="hint" style="color:var(--muted); font-size:12px; margin-top:6px;">
+      Tip: If an axis includes β<sub>c</sub>, keep it in <b>linear</b> scale (0–0.99). Other positive quantities often benefit from <b>log</b> scales.
+    </div>
+  </section>
+
+  <!-- Plot -->
+  <section class="panel">
+    <h2>Result</h2>
+    <div id="plot"></div>
+  </section>
+</div>
+
+<footer>
+  Uses the large‑sail asymptote (valid when r<sub>s</sub> ≫ D<sub>c</sub>/2). It shades “success” where the criterion holds and overlays the equality boundary.
+</footer>
+
+<script>
+/* --- Physics constants and helpers --- */
+const c = 299_792_458; // m/s
+const A = 2*Math.PI*Math.sqrt(2*Math.PI); // 2π√(2π)
+const c3 = c*c*c;
+
+/* Φ(β) = (1/3)u^3 - u + 2/3, u = sqrt((1+β)/(1-β)) */
+function phiOfBeta(beta) {
+  if (beta <= 0) return 0;
+  if (beta >= 1) return Number.POSITIVE_INFINITY;
+  const u = Math.sqrt((1+beta)/(1-beta));
+  return (u*u*u)/3 - u + 2/3;
+}
+
+/* Invert Φ(β) = T -> β(T) */
+function betaFromPhi(T) {
+  if (T <= 0) return 0;
+  let lo = 0, hi = 1 - 1e-14;
+  for (let it=0; it<120; it++) {
+    const mid = 0.5*(lo+hi);
+    const f = phiOfBeta(mid) - T;
+    if (Math.abs(f) < 1e-12) return mid;
+    if (f > 0) hi = mid; else lo = mid;
+  }
+  return 0.5*(lo+hi);
+}
+
+/* Dimensionless left-hand side L = (2π√(2π))/λ * (P*Dc*rs)/(ms*c^3) */
+function LHS(params) {
+  const { P, Dc, lambda, rs, ms } = params;
+  if (lambda <= 0 || ms <= 0) return NaN;
+  return (A / lambda) * (P * Dc * rs) / (ms * c3);
+}
+
+/* Critical (equality) value solver for any single variable */
+function critValue(varName, p) {
+  const Phi = phiOfBeta(p.beta);
+  if (Phi <= 0) return 0;
+  switch (varName) {
+    case 'P':      return (p.ms * c3 * p.lambda * Phi) / (A * p.Dc * p.rs);
+    case 'Dc':     return (p.ms * c3 * p.lambda * Phi) / (A * p.P * p.rs);
+    case 'rs':     return (p.ms * c3 * p.lambda * Phi) / (A * p.P * p.Dc);
+    case 'ms':     return (A * p.P * p.Dc * p.rs) / (c3 * p.lambda * Phi);
+    case 'lambda': return (A * p.P * p.Dc * p.rs) / (p.ms * c3 * Phi);
+    case 'beta':   return betaFromPhi( LHS(p) );
+    default:       return NaN;
+  }
+}
+
+/* --- UI handles --- */
+const els = {
+  xvar: document.getElementById('xvar'),
+  yvar: document.getElementById('yvar'),
+  xscale: document.getElementById('xscale'),
+  yscale: document.getElementById('yscale'),
+  xmin: document.getElementById('xmin'),
+  xmax: document.getElementById('xmax'),
+  ymin: document.getElementById('ymin'),
+  ymax: document.getElementById('ymax'),
+  nx: document.getElementById('nx'),
+  ny: document.getElementById('ny'),
+  autorange: document.getElementById('autorange'),
+  swap: document.getElementById('swap'),
+  plotBtn: document.getElementById('plotBtn'),
+  reset: document.getElementById('reset'),
+  warn: document.getElementById('warnings'),
+  P_fixed_wrap: document.getElementById('P_fixed_wrap'),
+  Dc_fixed_wrap: document.getElementById('Dc_fixed_wrap'),
+  lambda_fixed_wrap: document.getElementById('lambda_fixed_wrap'),
+  rs_fixed_wrap: document.getElementById('rs_fixed_wrap'),
+  ms_fixed_wrap: document.getElementById('ms_fixed_wrap'),
+  beta_fixed_wrap: document.getElementById('beta_fixed_wrap'),
+  P_fixed: document.getElementById('P_fixed'),
+  Dc_fixed: document.getElementById('Dc_fixed'),
+  lambda_fixed: document.getElementById('lambda_fixed'),
+  rs_fixed: document.getElementById('rs_fixed'),
+  ms_fixed: document.getElementById('ms_fixed'),
+  beta_fixed: document.getElementById('beta_fixed')
+};
+
+/* === Default values (as requested) === */
+els.P_fixed.value = "1e9";      // W
+els.Dc_fixed.value = "1";       // m
+els.lambda_fixed.value = "1e-6";// m (1 micron)
+els.rs_fixed.value = "10";      // m
+els.ms_fixed.value = "1";       // kg
+els.beta_fixed.value = "0.9";   // –
+
+/* Ensure distinct axes & fixed visibility */
+function ensureDistinctAxes() {
+  if (els.xvar.value === els.yvar.value) {
+    const options = ['P','Dc','lambda','rs','ms','beta'];
+    const next = options.find(o => o !== els.xvar.value);
+    els.yvar.value = next;
+  }
+}
+function updateFixedVisibility() {
+  const xv = els.xvar.value, yv = els.yvar.value;
+  const onAxis = new Set([xv, yv]);
+  [['P', els.P_fixed_wrap], ['Dc', els.Dc_fixed_wrap], ['lambda', els.lambda_fixed_wrap],
+   ['rs', els.rs_fixed_wrap], ['ms', els.ms_fixed_wrap], ['beta', els.beta_fixed_wrap]
+  ].forEach(([name, wrap]) => wrap.style.display = onAxis.has(name) ? 'none' : 'block');
+  if (xv === 'beta') els.xscale.value = 'linear';
+  if (yv === 'beta') els.yscale.value = 'linear';
+}
+function parseNum(el) {
+  const v = Number(el.value);
+  return Number.isFinite(v) ? v : NaN;
+}
+
+/* Collect inputs */
+function collectInputs() {
+  ensureDistinctAxes(); updateFixedVisibility();
+  const xv = els.xvar.value, yv = els.yvar.value;
+  function readRange(prefix, defMin, defMax) {
+    const minEl = document.getElementById(prefix+'min');
+    const maxEl = document.getElementById(prefix+'max');
+    let min = parseNum(minEl), max = parseNum(maxEl);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+      min = defMin; max = defMax;
+    }
+    const scale = (prefix==='x') ? els.xscale.value : els.yscale.value;
+    return {min, max, n: prefix==='x' ? parseInt(els.nx.value||'160',10) : parseInt(els.ny.value||'160',10), scale};
+  }
+  function defaultsFor(v){
+    switch(v){
+      case 'P': return [1e4, 1e14];
+      case 'Dc': return [0.1, 1e4];
+      case 'lambda': return [1e-9, 1e-3];
+      case 'rs': return [0.1, 1e5];
+      case 'ms': return [1e-6, 1e6];
+      case 'beta': return [0.01, 0.99];
+      default: return [1, 10];
+    }
+  }
+  const [xDefMin, xDefMax] = defaultsFor(xv);
+  const [yDefMin, yDefMax] = defaultsFor(yv);
+  const xRange = readRange('x', xDefMin, xDefMax);
+  const yRange = readRange('y', yDefMin, yDefMax);
+
+  const fixed = {};
+  const needFixed = ['P','Dc','lambda','rs','ms','beta'].filter(v => v !== xv && v !== yv);
+  for (const name of needFixed) {
+    const el = document.getElementById(name + '_fixed');
+    const val = parseNum(el);
+    if (!Number.isFinite(val)) throw new Error(`Please enter a numeric value for fixed parameter ${name}.`);
+    fixed[name] = val;
+  }
+  if (!('P' in fixed)) fixed.P = NaN;
+  if (!('Dc' in fixed)) fixed.Dc = NaN;
+  if (!('lambda' in fixed)) fixed.lambda = NaN;
+  if (!('rs' in fixed)) fixed.rs = NaN;
+  if (!('ms' in fixed)) fixed.ms = NaN;
+  if (!('beta' in fixed)) fixed.beta = NaN;
+
+  // Domain warnings
+  const domain = {};
+  function setDomain(name, range, fixedVal) {
+    if (xv === name) domain[name] = [xRange.min, xRange.max];
+    else if (yv === name) domain[name] = [yRange.min, yRange.max];
+    else if (Number.isFinite(fixedVal)) domain[name] = [fixedVal, fixedVal];
+  }
+  ['P','Dc','lambda','rs','ms','beta'].forEach(n=> setDomain(n, null, fixed[n]));
+  const msgs = validationMessages(domain);
+  els.warn.innerHTML = msgs.join('<br/>');
+  els.warn.classList.toggle('show', msgs.length>0);
+
+  return {xv, yv, ranges: {x: xRange, y: yRange}, fixed};
+}
+
+/* Warnings */
+function validationMessages(domain) {
+  const msgs = [];
+  if (domain.beta && domain.beta[1] > 1) msgs.push(`<span class="error">β<sub>c</sub> must be &lt; 1.</span> Clamping to 0.999999.`);
+  // r_s < D_c anywhere in domain?
+  if (domain.rs && domain.Dc) {
+    if (domain.rs[0] < domain.Dc[1]) msgs.push(`<b>Warning:</b> region includes r<sub>s</sub> &lt; D<sub>c</sub>; large‑sail asymptote may not apply.`);
+  } else if (els.rs_fixed.value && els.Dc_fixed.value) {
+    const rs = parseNum(els.rs_fixed), Dc = parseNum(els.Dc_fixed);
+    if (rs < Dc) msgs.push(`<b>Warning:</b> r<sub>s</sub>=${rs} m &lt; D<sub>c</sub>=${Dc} m.`);
+  }
+  return msgs;
+}
+
+/* Build axis arrays */
+function buildAxis(min, max, n, scale) {
+  if (scale === 'log') {
+    if (min <= 0) min = Math.max(min, 1e-30);
+    const lo = Math.log10(min), hi = Math.log10(max);
+    const arr = [];
+    for (let i=0; i<n; i++) { const t = i/(n-1); arr.push(10**(lo + t*(hi-lo))); }
+    return arr;
+  } else {
+    const arr = []; for (let i=0; i<n; i++) { const t = i/(n-1); arr.push(min + t*(max-min)); } return arr;
+  }
+}
+
+/* Compute grid and boundary */
+function computeGrid(xv, yv, ranges, fixed) {
+  const nx = ranges.x.n, ny = ranges.y.n;
+  const xs = buildAxis(ranges.x.min, ranges.x.max, nx, ranges.x.scale);
+  const ys = buildAxis(ranges.y.min, ranges.y.max, ny, ranges.y.scale);
+  const z = new Array(ny);
+  for (let j=0; j<ny; j++) {
+    const row = new Array(nx);
+    for (let i=0; i<nx; i++) {
+      const p = {...fixed};
+      p[xv] = xs[i]; p[yv] = ys[j];
+      if (p.beta >= 1) p.beta = 0.999999;
+      row[i] = LHS(p) - phiOfBeta(p.beta); // >0 success
+    }
+    z[j] = row;
+  }
+
+  const boundary = {x: [], y: []};
+  const sampleN = 300;
+  if (xv !== 'beta') {
+    const ys2 = buildAxis(ranges.y.min, ranges.y.max, sampleN, ranges.y.scale);
+    for (const y of ys2) {
+      const p = {...fixed}; p[yv] = y; boundary.x.push(critValue(xv, p)); boundary.y.push(y);
+    }
+  } else if (yv !== 'beta') {
+    const xs2 = buildAxis(ranges.x.min, ranges.x.max, sampleN, ranges.x.scale);
+    for (const x of xs2) {
+      const p = {...fixed}; p[xv] = x; boundary.x.push(x); boundary.y.push(critValue(yv, p));
+    }
+  }
+  return { xs, ys, z, boundary };
+}
+
+/* Check mixture */
+function hasBoth(z) {
+  let has0=false, has1=false;
+  for (const row of z) { for (const v of row) { if (v <= 0) has0=true; else has1=true; if (has0&&has1) return true; } }
+  return has0 && has1;
+}
+
+/* Expand ranges to get both outcomes (increased to 8 tries) */
+function expandRanges(xv, yv, ranges, fixed, maxIter=8) {
+  function grow(axis, factorUp=10, factorDown=10) {
+    const r = ranges[axis];
+    if (!r) return;
+    if (axis === 'x' && xv === 'beta' || axis === 'y' && yv === 'beta') {
+      r.min = Math.max(0, r.min - 0.05);
+      r.max = Math.min(0.999999, r.max + 0.05);
+    } else {
+      r.min = r.scale === 'log' ? r.min/ factorDown : Math.max(1e-30, r.min - (r.max - r.min));
+      r.max = r.scale === 'log' ? r.max* factorUp   : r.max + (r.max - r.min);
+      if (r.min <= 0 && r.scale==='log') r.min = r.max/1e6;
+    }
+  }
+  for (let it=0; it<maxIter; it++) {
+    const grid = computeGrid(xv, yv, ranges, fixed);
+    if (hasBoth(grid.z)) return {ranges, grid, changed: it>0};
+    grow('x'); grow('y');
+  }
+  const grid = computeGrid(xv, yv, ranges, fixed);
+  return {ranges, grid, changed: true};
+}
+
+/* Auto-range around equality if possible */
+function autoRange() {
+  const {xv, yv, ranges, fixed} = collectInputs();
+  function midOf(r) { return r.scale==='log' ? Math.sqrt(r.min*r.max) : 0.5*(r.min+r.max); }
+  let xSeedMin = ranges.x.min, xSeedMax = ranges.x.max;
+  let ySeedMin = ranges.y.min, ySeedMax = ranges.y.max;
+  const pRef = {...fixed}; pRef[xv] = midOf(ranges.x); pRef[yv] = midOf(ranges.y);
+  const xcrit = critValue(xv, pRef); if (Number.isFinite(xcrit) && xcrit>0) {
+    if (ranges.x.scale==='log') { xSeedMin = xcrit/10; xSeedMax = xcrit*10; }
+    else { xSeedMin = Math.max(0, xcrit - Math.abs(xcrit)); xSeedMax = xcrit + Math.abs(xcrit); }
+  }
+  const ycrit = critValue(yv, pRef); if (Number.isFinite(ycrit) && ycrit>0) {
+    if (ranges.y.scale==='log') { ySeedMin = ycrit/10; ySeedMax = ycrit*10; }
+    else { ySeedMin = Math.max(0, ycrit - Math.abs(ycrit)); ySeedMax = ycrit + Math.abs(ycrit); }
+  }
+  els.xmin.value = xSeedMin; els.xmax.value = xSeedMax;
+  els.ymin.value = ySeedMin; els.ymax.value = ySeedMax;
+}
+
+/* Main plotting */
+function doPlot() {
+  let xv, yv, ranges, fixed;
+  try { ({xv, yv, ranges, fixed} = collectInputs()); }
+  catch (err) { els.warn.innerHTML = `<span style="color:#ef4444;font-weight:600">${err.message}</span>`; els.warn.classList.add('show'); return; }
+
+  const result = expandRanges(xv, yv, ranges, fixed, 8);
+  ranges = result.ranges;
+  const grid = result.grid;
+
+  if (result.changed) {
+    els.xmin.value = ranges.x.min; els.xmax.value = ranges.x.max;
+    els.ymin.value = ranges.y.min; els.ymax.value = ranges.y.max;
+  }
+
+  const z01 = grid.z.map(row => row.map(v => v > 0 ? 1 : 0));
+  const colorscale = [
+    [0.0,  'rgba(239,68,68,0.85)'],
+    [0.4999, 'rgba(239,68,68,0.85)'],
+    [0.5,  'rgba(34,197,94,0.85)'],
+    [1.0,  'rgba(34,197,94,0.85)']
+  ];
+  const labels = { P:'P [W]', Dc:'D_c [m]', lambda:'λ [m]', rs:'r_s [m]', ms:'m_s [kg]', beta:'β_c [–]' };
+
+  const heat = {
+    type: 'heatmap', x: grid.xs, y: grid.ys, z: z01,
+    colorscale, showscale: false,
+    hovertemplate: `${labels[xv]}: %{x}<br>${labels[yv]}: %{y}<br>%{z:,.0f} = success? (1 yes, 0 no)<extra></extra>`
+  };
+  const boundary = {
+    type: 'scatter', mode: 'lines', x: grid.boundary.x, y: grid.boundary.y,
+    name: 'Equality boundary', line: { width: 2, color: '#e5e7eb' }, hoverinfo: 'skip'
+  };
+  const layout = {
+  paper_bgcolor: 'rgba(0,0,0,0)',
+  plot_bgcolor: 'rgba(0,0,0,0)',
+  margin: { l: 60, r: 20, t: 10, b: 50 },
+
+  // optional: make all default text white (legend, annotations, etc.)
+  font: { color: '#ffffff' },
+
+  xaxis: {
+    title: { text: labels[xv], font: { color: '#ffffff' } }, // bright title
+    tickfont: { color: '#ffffff' },                          // bright tick labels
+    type: ranges.x.scale === 'log' ? 'log' : 'linear',
+    gridcolor: '#1f2937',
+    zeroline: false
+  },
+  yaxis: {
+    title: { text: labels[yv], font: { color: '#ffffff' } },
+    tickfont: { color: '#ffffff' },
+    type: ranges.y.scale === 'log' ? 'log' : 'linear',
+    gridcolor: '#1f2937',
+    zeroline: false
+  },
+
+  legend: { orientation: 'h', x: 0, y: 1.08, font: { color: '#ffffff' } }
+};
+
+  Plotly.newPlot('plot', [heat, boundary], layout, {responsive: true, displaylogo: false});
+}
+
+/* Swap axes */
+function swapAxes() {
+  const x = els.xvar.value, y = els.yvar.value;
+  els.xvar.value = y; els.yvar.value = x;
+  const xScale = els.xscale.value, yScale = els.yscale.value;
+  els.xscale.value = yScale; els.yscale.value = xScale;
+  const xmin = els.xmin.value, xmax = els.xmax.value, ymin = els.ymin.value, ymax = els.ymax.value;
+  els.xmin.value = ymin; els.xmax.value = ymax; els.ymin.value = xmin; els.ymax.value = xmax;
+  updateFixedVisibility();
+}
+
+/* Reset */
+function resetAll() {
+  els.xvar.value = 'P'; els.yvar.value = 'Dc';
+  els.xscale.value = 'log'; els.yscale.value = 'log';
+  els.xmin.value = ''; els.xmax.value = ''; els.ymin.value = ''; els.ymax.value = '';
+  // Defaults requested
+  els.P_fixed.value = "1e9"; els.Dc_fixed.value = "1"; els.lambda_fixed.value = "1e-6";
+  els.rs_fixed.value = "10"; els.ms_fixed.value = "1"; els.beta_fixed.value = "0.9";
+  els.warn.classList.remove('show'); els.warn.innerHTML = "";
+  ensureDistinctAxes(); updateFixedVisibility(); autoRange(); doPlot();
+}
+
+/* Init */
+ensureDistinctAxes();
+updateFixedVisibility();
+/* Auto-range and plot on load so the results area is not blank */
+autoRange();
+doPlot();
+
+/* Bindings */
+els.xvar.addEventListener('change', ()=>{ ensureDistinctAxes(); updateFixedVisibility(); });
+els.yvar.addEventListener('change', ()=>{ ensureDistinctAxes(); updateFixedVisibility(); });
+els.autorange.addEventListener('click', autoRange);
+els.swap.addEventListener('click', swapAxes);
+els.plotBtn.addEventListener('click', doPlot);
+els.reset.addEventListener('click', resetAll);
+
+/* Live β validation */
+els.beta_fixed.addEventListener('input', ()=>{
+  const v = parseNum(els.beta_fixed);
+  const msgs = [];
+  if (Number.isFinite(v) && v > 1) msgs.push(`<span class="error">β<sub>c</sub> must be &lt; 1.</span> Clamping to 0.999999.`);
+  els.warn.innerHTML = msgs.join('<br/>'); els.warn.classList.toggle('show', msgs.length>0);
+});
+els.beta_fixed.addEventListener('blur', ()=>{
+  let v = parseNum(els.beta_fixed);
+  if (Number.isFinite(v) && v >= 1) els.beta_fixed.value = 0.999999;
+  if (Number.isFinite(v) && v < 0) els.beta_fixed.value = 0;
+});
+</script>
+</body>
+</html>

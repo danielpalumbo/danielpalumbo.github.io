@@ -6,6 +6,9 @@ main:
  - title: "Galactic Petri Dish"
    url: /petri.html
 
+ - title: "Fun With Laser Sails"
+   url: /laser_sail.html
+   
   # - title: "Talks"
   #   url: /talks/    
 
