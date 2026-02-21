@@ -9,8 +9,8 @@ main:
  - title: "Fun With Laser Sails"
    url: /laser_sail.html
    
-  # - title: "Talks"
-  #   url: /talks/    
+  - title: "Fun With I-V Curves"
+    url: /iv_curve_fitter.html    
 
   # - title: "Teaching"
   #   url: /teaching/    

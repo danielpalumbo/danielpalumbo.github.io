@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Circuit I-V Curve Fitter</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 20px;
+      background: #f0f2f5;
+      color: #333;
+    }
+    h1 { color: #2c3e50; margin-bottom: 16px; font-size: 1.6em; }
+    h2 { color: #34495e; font-size: 1.05em; margin-bottom: 12px; }
+    .section {
+      background: white;
+      padding: 18px 20px;
+      margin: 10px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      margin: 8px 0;
+    }
+    label { display: flex; align-items: center; gap: 6px; font-size: 0.93em; }
+    input[type="number"] {
+      width: 85px; padding: 4px 6px;
+      border: 1px solid #ccc; border-radius: 4px; font-size: 0.92em;
+    }
+    input[type="text"] {
+      width: 290px; padding: 4px 8px;
+      border: 1px solid #ccc; border-radius: 4px;
+      font-family: monospace; font-size: 1em;
+    }
+    input[type="range"] { width: 170px; cursor: pointer; }
+    button {
+      padding: 7px 15px; cursor: pointer;
+      border-radius: 6px; border: 1px solid #bbb;
+      background: #f5f5f5; font-size: 0.92em;
+      transition: background 0.12s;
+    }
+    button:hover:not(:disabled) { background: #e5e7e9; }
+    button.primary {
+      background: #2980b9; color: white;
+      border-color: #2471a3; font-weight: 600;
+    }
+    button.primary:hover:not(:disabled) { background: #2471a3; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .hint {
+      font-size: 0.82em; color: #888; margin-top: 6px;
+      font-family: monospace; background: #f8f9fa;
+      padding: 6px 10px; border-radius: 4px;
+    }
+    .circuit-eq {
+      font-family: monospace; font-size: 0.88em;
+      background: #eef2f7; padding: 8px 12px;
+      border-radius: 6px; color: #2c3e50;
+      margin-bottom: 12px; border-left: 3px solid #2980b9;
+    }
+    #ri-container { margin-top: 10px; }
+    .ri-row {
+      display: flex; align-items: center; gap: 12px;
+      margin: 5px 0; padding: 6px 10px;
+      background: #f8f9fa; border-radius: 6px;
+    }
+    .ri-label {
+      width: 30px; font-family: monospace;
+      font-weight: bold; font-size: 0.95em; color: #2c3e50;
+    }
+    .ri-ohm {
+      font-family: monospace; font-size: 0.82em;
+      color: #777; min-width: 90px;
+    }
+    #status {
+      padding: 9px 14px; border-radius: 6px;
+      font-size: 0.88em; min-height: 36px;
+      margin: 6px 0; display: none;
+    }
+    .s-error  { background:#fce4e4; color:#c0392b; border-left:4px solid #c0392b; display:block!important; }
+    .s-success{ background:#e8f8e8; color:#27ae60; border-left:4px solid #27ae60; display:block!important; }
+    .s-info   { background:#e8f0ff; color:#2471a3; border-left:4px solid #2471a3; display:block!important; }
+    #plot { margin-top: 10px; border-radius: 10px; overflow: hidden; }
+    .pair-count { font-weight: 600; color: #2980b9; }
+  </style>
+</head>
+<body>
+
+<h1>Circuit I-V Curve Fitter</h1>
+
+<!-- Circuit Parameters -->
+<div class="section">
+  <h2>Circuit Parameters</h2>
+  <div class="circuit-eq">
+    V = I·R₀ + &sum;ᵢ min(I·rᵢ·R₀, V_th)
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    Topology: R₀ &mdash; [D&#x2081;&#x2225;r&#x2081;R₀] &mdash; [D&#x2082;&#x2225;r&#x2082;R₀] &mdash; &hellip;
+  </div>
+  <div class="row">
+    <label>R₀ (Ω): <input type="number" id="R0" value="1" min="0.0001" step="0.1"></label>
+    <label>V_th (V): <input type="number" id="Vth" value="0.7" min="0.001" step="0.05"></label>
+    <span>Pairs: <span class="pair-count" id="numPairs">3</span></span>
+    <button onclick="addPair()">+ Add Pair</button>
+    <button onclick="removePair()">&minus; Remove Pair</button>
+  </div>
+  <div id="ri-container"></div>
+</div>
+
+<!-- Target Function -->
+<div class="section">
+  <h2>Target Function &amp; Voltage Range</h2>
+  <div class="row">
+    <label>f(V) =&nbsp;<input type="text" id="func" value="log2(1+pow(2,-(5-V)))"></label>
+  </div>
+  <div class="hint">
+    Supported: +&nbsp;&minus;&nbsp;*&nbsp;/&nbsp;^&nbsp;**&nbsp;&nbsp;
+    sin cos tan asin acos atan exp log log2 log10 sqrt abs sign floor ceil pow&nbsp;&nbsp;
+    pi e&nbsp;&nbsp;Example: V*(1-exp(-2*V))
+  </div>
+  <div class="row" style="margin-top:12px">
+    <label>V_min: <input type="number" id="vmin" value="0" step="0.1"></label>
+    <label>V_max: <input type="number" id="vmax" value="5" step="0.1"></label>
+    <label>Points: <input type="number" id="npoints" value="300" min="20" max="2000"></label>
+    <button onclick="updatePlot()">Update Plot</button>
+  </div>
+</div>
+
+<!-- Fit Controls -->
+<div class="section">
+  <div class="row">
+    <button class="primary" id="fit-btn" onclick="runFit()">&#9654; Fit Circuit to Function</button>
+    <label style="gap:8px; margin-left:10px">
+      <input type="checkbox" id="multi-restart" checked>
+      Multiple restarts (more robust, slower)
+    </label>
+  </div>
+</div>
+
+<div id="status"></div>
+<div id="plot"></div>
+
+<script>
+'use strict';
+
+// ============================================================
+//  State
+// ============================================================
+let riValues = [1.0, 2.0, 4.0, 8.0];
+let plotInitialized = false;
+
+// ============================================================
+//  Circuit I-V
+// ============================================================
+
+/** Compute total voltage for a given current I. */
+function vFromI(I, R0, Vth, ri) {
+  let V = I * R0;
+  for (const r of ri) {
+    const Vr = I * r * R0;
+    V += (Vr < Vth) ? Vr : Vth;
+  }
+  return V;
+}
+
+/** Invert: find I given V_target, using binary search. */
+function iFromV(Vtarget, R0, Vth, ri) {
+  if (Vtarget < 0) {
+    // Reverse bias: all diodes open → purely resistive
+    const Rtotal = R0 * (1 + ri.reduce((s, r) => s + r, 0));
+    return Vtarget / Rtotal;
+  }
+  if (Vtarget === 0) return 0;
+  // V(I) is monotonically increasing; V(Vtarget/R0) >= Vtarget
+  let lo = 0, hi = Vtarget / R0;
+  for (let k = 0; k < 64; k++) {
+    const mid = 0.5 * (lo + hi);
+    if (vFromI(mid, R0, Vth, ri) < Vtarget) lo = mid; else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+
+function circuitIV(Varray, R0, Vth, ri) {
+  return Varray.map(V => iFromV(V, R0, Vth, ri));
+}
+
+// ============================================================
+//  User function evaluation
+// ============================================================
+
+function evalFunc(expr, Varray) {
+  const processed = expr.replace(/\^/g, '**');
+  let fn;
+  try {
+    fn = new Function('V', `
+      const {sin,cos,tan,asin,acos,atan,atan2,sinh,cosh,tanh,
+             exp,log,log2,log10,sqrt,cbrt,abs,sign,floor,ceil,
+             round,pow,min,max,PI,E} = Math;
+      const pi = Math.PI, e = Math.E;
+      return (${processed});
+    `);
+  } catch (err) {
+    throw new Error('Syntax error in f(V): ' + err.message);
+  }
+  return Varray.map(V => {
+    try {
+      const val = fn(V);
+      return (typeof val === 'number' && isFinite(val)) ? val : 0;
+    } catch { return 0; }
+  });
+}
+
+// ============================================================
+//  Normalization (divide by maximum value)
+// ============================================================
+
+function normalizeByMax(arr) {
+  const mx = arr.reduce((m, x) => Math.max(m, x), -Infinity);
+  if (!isFinite(mx) || mx === 0) return arr.map(() => 0);
+  return arr.map(x => x / mx);
+}
+
+// ============================================================
+//  Voltage grid + parameter helpers
+// ============================================================
+
+function getVgrid() {
+  const vmin = parseFloat(document.getElementById('vmin').value) || 0;
+  const vmax = parseFloat(document.getElementById('vmax').value) || 5;
+  const n    = Math.max(20, parseInt(document.getElementById('npoints').value) || 300);
+  const V = [];
+  for (let i = 0; i < n; i++) V.push(vmin + (vmax - vmin) * i / (n - 1));
+  return V;
+}
+
+function getR0()  { return Math.max(1e-9, parseFloat(document.getElementById('R0').value)  || 1); }
+function getVth() { return Math.max(1e-6, parseFloat(document.getElementById('Vth').value) || 0.7); }
+
+// ============================================================
+//  Nelder-Mead optimizer
+// ============================================================
+
+function nelderMead(f, x0, { maxIter=6000, tol=1e-10, alpha=1, gamma=2, rho=0.5, sigma=0.5 } = {}) {
+  const n = x0.length;
+
+  // Build initial simplex
+  let S = [x0.slice()];
+  for (let i = 0; i < n; i++) {
+    const x = x0.slice();
+    x[i] += (x[i] !== 0) ? 0.05 * Math.abs(x[i]) : 0.0001;
+    S.push(x);
+  }
+  let fS = S.map(f);
+
+  for (let iter = 0; iter < maxIter; iter++) {
+    // Sort: index 0 = best, index n = worst
+    const ord = Array.from({length: n+1}, (_, i) => i).sort((a, b) => fS[a] - fS[b]);
+    S  = ord.map(i => S[i]);
+    fS = ord.map(i => fS[i]);
+
+    if (Math.abs(fS[n] - fS[0]) < tol) break;
+
+    // Centroid of best n vertices (exclude worst)
+    const xbar = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) xbar[j] += S[i][j] / n;
+
+    // Reflection
+    const xr = xbar.map((c, j) => c + alpha * (c - S[n][j]));
+    const fr = f(xr);
+
+    if (fr < fS[0]) {
+      // Expansion
+      const xe = xbar.map((c, j) => c + gamma * (xr[j] - c));
+      const fe = f(xe);
+      if (fe < fr) { S[n] = xe; fS[n] = fe; }
+      else          { S[n] = xr; fS[n] = fr; }
+    } else if (fr < fS[n-1]) {
+      // Accept reflection
+      S[n] = xr; fS[n] = fr;
+    } else if (fr < fS[n]) {
+      // Outside contraction
+      const xc = xbar.map((c, j) => c + rho * (xr[j] - c));
+      const fc = f(xc);
+      if (fc <= fr) { S[n] = xc; fS[n] = fc; }
+      else { shrink(); }
+    } else {
+      // Inside contraction
+      const xc = xbar.map((c, j) => c + rho * (S[n][j] - c));
+      const fc = f(xc);
+      if (fc < fS[n]) { S[n] = xc; fS[n] = fc; }
+      else { shrink(); }
+    }
+
+    function shrink() {
+      for (let i = 1; i <= n; i++) {
+        S[i]  = S[0].map((v, j) => v + sigma * (S[i][j] - v));
+        fS[i] = f(S[i]);
+      }
+    }
+  }
+
+  return { x: S[0], value: fS[0] };
+}
+
+// ============================================================
+//  Fitting
+// ============================================================
+
+function runFit() {
+  const R0  = getR0();
+  const Vth = getVth();
+  const Vgrid = getVgrid();
+  const expr  = document.getElementById('func').value.trim();
+  const multiRestart = document.getElementById('multi-restart').checked;
+
+  let fvals;
+  try { fvals = evalFunc(expr, Vgrid); }
+  catch (err) { setStatus(err.message, 'error'); return; }
+
+  const fnorm = normalizeByMax(fvals);
+  if (fnorm.every(v => v === 0)) {
+    setStatus('Target function is zero everywhere in the given range.', 'error');
+    return;
+  }
+
+  const N = riValues.length;
+
+  function objective(s) {
+    const ri   = s.map(si => Math.exp(si));
+    const Iarr = circuitIV(Vgrid, R0, Vth, ri);
+    const Imx  = Iarr.reduce((m, x) => Math.max(m, x), -Infinity);
+    if (!isFinite(Imx) || Imx <= 0) return 1e12;
+    const Inorm = Iarr.map(I => I / Imx);
+    let loss = 0;
+    for (let k = 0; k < Vgrid.length; k++) {
+      const d = Inorm[k] - fnorm[k];
+      loss += d * d;
+    }
+    return loss;
+  }
+
+  const btn = document.getElementById('fit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Fitting\u2026';
+  setStatus('Running Nelder-Mead optimization\u2026', 'info');
+
+  setTimeout(() => {
+    try {
+      // Build list of starting points
+      const starts = [riValues.map(r => Math.log(r))]; // current values first
+      if (multiRestart) {
+        // 7 additional random starts in log-space
+        for (let k = 0; k < 7; k++) {
+          starts.push(Array.from({length: N}, () => (Math.random() * 5 - 1) * Math.LN10));
+        }
+        // A few structured starts
+        starts.push(Array.from({length: N}, (_, i) => Math.log(1 + i)));
+        starts.push(Array.from({length: N}, (_, i) => Math.log(0.1 * (i + 1))));
+        starts.push(Array.from({length: N}, () => 0)); // all r=1
+      }
+
+      let best = null;
+      for (const s0 of starts) {
+        const res = nelderMead(objective, s0);
+        if (!best || res.value < best.value) best = res;
+      }
+
+      riValues = best.x.map(s => Math.exp(s));
+      renderRiInputs();
+      updatePlot();
+
+      const riStr = riValues.map(r => r.toPrecision(4)).join(', ');
+      setStatus(
+        `Fit complete.  Loss = ${best.value.toExponential(3)}.  ` +
+        `r\u1D62 = [${riStr}]`,
+        'success'
+      );
+    } catch (err) {
+      setStatus('Fit error: ' + err.message, 'error');
+    }
+    btn.disabled = false;
+    btn.textContent = '\u25B6 Fit Circuit to Function';
+  }, 30);
+}
+
+// ============================================================
+//  Plot
+// ============================================================
+
+function updatePlot() {
+  const R0    = getR0();
+  const Vth   = getVth();
+  const Vgrid = getVgrid();
+  const expr  = document.getElementById('func').value.trim();
+
+  let fvals;
+  try {
+    fvals = evalFunc(expr, Vgrid);
+    clearStatus();
+  } catch (err) {
+    setStatus(err.message, 'error');
+    return;
+  }
+
+  const Iarr  = circuitIV(Vgrid, R0, Vth, riValues);
+  const fnorm = normalizeByMax(fvals);
+  const Inorm = normalizeByMax(Iarr);
+
+  // Compute pointwise residual
+  const residual = Vgrid.map((_, k) => Inorm[k] - fnorm[k]);
+
+  const traces = [
+    {
+      x: Vgrid, y: Inorm,
+      mode: 'lines', name: 'Circuit I(V) (normalized)',
+      line: { color: '#2980b9', width: 2.5 }
+    },
+    {
+      x: Vgrid, y: fnorm,
+      mode: 'lines', name: 'Target f(V) (normalized)',
+      line: { color: '#e74c3c', width: 2, dash: 'dash' }
+    },
+    {
+      x: Vgrid, y: residual,
+      mode: 'lines', name: 'Residual (circuit \u2212 target)',
+      line: { color: '#27ae60', width: 1.2, dash: 'dot' },
+      yaxis: 'y2'
+    }
+  ];
+
+  const layout = {
+    title: {
+      text: 'Normalized I-V Curve vs Target Function',
+      font: { size: 15 }
+    },
+    xaxis: { title: 'Voltage V (V)', zeroline: true },
+    yaxis: { title: 'Normalized amplitude', rangemode: 'tozero', zeroline: true },
+    yaxis2: {
+      title: 'Residual',
+      overlaying: 'y', side: 'right',
+      zeroline: true, showgrid: false,
+      titlefont: { color: '#27ae60' },
+      tickfont:  { color: '#27ae60' }
+    },
+    legend: { x: 0.02, y: 0.98, bgcolor: 'rgba(255,255,255,0.8)', bordercolor: '#ccc', borderwidth: 1 },
+    height: 520,
+    margin: { t: 50, r: 80 }
+  };
+
+  if (!plotInitialized) {
+    Plotly.newPlot('plot', traces, layout, { responsive: true });
+    plotInitialized = true;
+  } else {
+    Plotly.react('plot', traces, layout);
+  }
+}
+
+// ============================================================
+//  UI helpers
+// ============================================================
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = '';
+  if (type === 'error')   el.className = 's-error';
+  else if (type === 'success') el.className = 's-success';
+  else if (type === 'info')    el.className = 's-info';
+}
+function clearStatus() {
+  const el = document.getElementById('status');
+  el.textContent = '';
+  el.className = '';
+}
+
+function addPair() {
+  riValues.push(1.0);
+  renderRiInputs();
+  updatePlot();
+}
+
+function removePair() {
+  if (riValues.length <= 1) {
+    setStatus('Must have at least one diode-resistor pair.', 'error');
+    return;
+  }
+  riValues.pop();
+  renderRiInputs();
+  updatePlot();
+}
+
+function renderRiInputs() {
+  const container = document.getElementById('ri-container');
+  container.innerHTML = '';
+  document.getElementById('numPairs').textContent = riValues.length;
+
+  riValues.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'ri-row';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'ri-label';
+    lbl.innerHTML = `r<sub>${i+1}</sub>`;
+
+    // Log10 slider: r from 10^-2 to 10^3
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = '-2'; slider.max = '3'; slider.step = '0.001';
+    slider.value = clampLog(r);
+
+    const numInp = document.createElement('input');
+    numInp.type = 'number';
+    numInp.min = '0.00001'; numInp.step = '0.01';
+    numInp.value = r.toPrecision(5);
+
+    const ohmLbl = document.createElement('span');
+    ohmLbl.className = 'ri-ohm';
+    ohmLbl.textContent = ohmsLabel(r);
+
+    function ohmsLabel(rv) {
+      return `= ${(rv * getR0()).toPrecision(4)} Ω`;
+    }
+
+    slider.addEventListener('input', () => {
+      riValues[i] = 10 ** parseFloat(slider.value);
+      numInp.value = riValues[i].toPrecision(5);
+      ohmLbl.textContent = ohmsLabel(riValues[i]);
+      updatePlot();
+    });
+    numInp.addEventListener('input', () => {
+      const v = parseFloat(numInp.value);
+      if (v > 0) {
+        riValues[i] = v;
+        slider.value = clampLog(v);
+        ohmLbl.textContent = ohmsLabel(v);
+        updatePlot();
+      }
+    });
+
+    row.appendChild(lbl);
+    row.appendChild(slider);
+    row.appendChild(numInp);
+    row.appendChild(ohmLbl);
+    container.appendChild(row);
+  });
+}
+
+function clampLog(r) {
+  return Math.max(-2, Math.min(3, Math.log10(Math.max(r, 1e-9)))).toFixed(6);
+}
+
+// ============================================================
+//  Live event listeners
+// ============================================================
+
+['R0','Vth','func','vmin','vmax','npoints'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updatePlot);
+});
+
+// ============================================================
+//  Init
+// ============================================================
+
+renderRiInputs();
+updatePlot();
+</script>
+</body>
+</html>
