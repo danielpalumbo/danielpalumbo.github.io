@@ -414,7 +414,7 @@ function updatePlot() {
   const Inorm = normalizeByMax(Iarr);
 
   // Compute pointwise residual
-  const residual = Vgrid.map((_, k) => Inorm[k] - fnorm[k]);
+  const residual = Vgrid.map((_, k) => Inorm[k]/fnorm[k] - fnorm[k]/fnorm[k]);
 
   const traces = [
     {
@@ -429,7 +429,7 @@ function updatePlot() {
     },
     {
       x: Vgrid, y: residual,
-      mode: 'lines', name: 'Residual (circuit \u2212 target)',
+      mode: 'lines', name: 'Fractional residual (circuit \u2212 target) \u002f target',
       line: { color: '#27ae60', width: 1.2, dash: 'dot' },
       yaxis: 'y2'
     }
@@ -443,7 +443,7 @@ function updatePlot() {
     xaxis: { title: 'Voltage V (V)', zeroline: true },
     yaxis: { title: 'Normalized amplitude', rangemode: 'tozero', zeroline: true },
     yaxis2: {
-      title: 'Residual',
+      title: 'Fractional Residual',
       overlaying: 'y', side: 'right',
       zeroline: true, showgrid: false,
       titlefont: { color: '#27ae60' },
