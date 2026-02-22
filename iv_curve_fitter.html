@@ -110,6 +110,11 @@
     <span>Pairs: <span class="pair-count" id="numPairs">3</span></span>
     <button onclick="addPair()">+ Add Pair</button>
     <button onclick="removePair()">&minus; Remove Pair</button>
+    <label style="margin-left:16px">r fit range:
+      <input type="number" id="rmin-fit" value="0.01" min="0.00001" step="0.01">
+      &nbsp;to&nbsp;
+      <input type="number" id="rmax-fit" value="2000" min="0.001" step="1">
+    </label>
   </div>
   <div id="ri-container"></div>
 </div>
@@ -118,7 +123,11 @@
 <div class="section">
   <h2>Target Function &amp; Voltage Range</h2>
   <div class="row">
-    <label>f(V) =&nbsp;<input type="text" id="func" value="log2(1+pow(2,-(5-V)))"></label>
+    <label>f(V) =&nbsp;<input type="text" id="func" value="log2(1+pow(2,-(10-V)))"></label>
+    <span style="font-family:monospace; font-size:0.9em; color:#555">
+      f(0) = <strong id="f0-display">—</strong>
+      <span id="f0-note" style="color:#888; font-style:italic; font-size:0.85em"></span>
+    </span>
   </div>
   <div class="hint">
     Supported: +&nbsp;&minus;&nbsp;*&nbsp;/&nbsp;^&nbsp;**&nbsp;&nbsp;
@@ -127,7 +136,7 @@
   </div>
   <div class="row" style="margin-top:12px">
     <label>V_min: <input type="number" id="vmin" value="0" step="0.1"></label>
-    <label>V_max: <input type="number" id="vmax" value="5" step="0.1"></label>
+    <label>V_max: <input type="number" id="vmax" value="10" step="0.1"></label>
     <label>Points: <input type="number" id="npoints" value="300" min="20" max="2000"></label>
     <button onclick="updatePlot()">Update Plot</button>
   </div>
@@ -153,7 +162,7 @@
 // ============================================================
 //  State
 // ============================================================
-let riValues = [1.0, 2.0, 4.0, 8.0];
+let riValues = [0.5, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1024.0];
 let plotInitialized = false;
 
 // ============================================================
@@ -240,8 +249,38 @@ function getVgrid() {
   return V;
 }
 
-function getR0()  { return Math.max(1e-9, parseFloat(document.getElementById('R0').value)  || 1); }
-function getVth() { return Math.max(1e-6, parseFloat(document.getElementById('Vth').value) || 0.7); }
+function getR0()   { return Math.max(1e-9, parseFloat(document.getElementById('R0').value)  || 1); }
+function getVth()  { return Math.max(1e-6, parseFloat(document.getElementById('Vth').value) || 0.7); }
+function getRmin() { return Math.max(1e-9, parseFloat(document.getElementById('rmin-fit').value) || 0.01); }
+function getRmax() { return Math.max(getRmin() * 1.001, parseFloat(document.getElementById('rmax-fit').value) || 1000); }
+
+// Bounded sigmoid transform: maps unconstrained s ∈ (-∞,+∞) to r ∈ (rmin, rmax).
+// This lets Nelder-Mead roam freely while r stays strictly in bounds.
+function rFromS(s, rmin, rmax) {
+  return rmin + (rmax - rmin) / (1 + Math.exp(-s));
+}
+function sFromR(r, rmin, rmax) {
+  const eps = 1e-7;
+  const t = Math.max(eps, Math.min(1 - eps, (r - rmin) / (rmax - rmin)));
+  return Math.log(t / (1 - t));
+}
+
+// Evaluate f at V=0 (outside the voltage range is fine — just a single point)
+function getF0() {
+  const expr = document.getElementById('func').value.trim();
+  try {
+    const vals = evalFunc(expr, [0]);
+    return (typeof vals[0] === 'number' && isFinite(vals[0])) ? vals[0] : 0;
+  } catch { return 0; }
+}
+
+function updateF0Display(f0) {
+  const el   = document.getElementById('f0-display');
+  const note = document.getElementById('f0-note');
+  if (!el) return;
+  el.textContent   = f0.toPrecision(5);
+  note.textContent = (f0 !== 0) ? '\u2009(subtracted during fit)' : '';
+}
 
 // ============================================================
 //  Nelder-Mead optimizer
@@ -324,26 +363,35 @@ function runFit() {
   try { fvals = evalFunc(expr, Vgrid); }
   catch (err) { setStatus(err.message, 'error'); return; }
 
-  const fnorm = normalizeByMax(fvals);
-  if (fnorm.every(v => v === 0)) {
-    setStatus('Target function is zero everywhere in the given range.', 'error');
+  // Shift f by f(0) so it starts at zero — the circuit I-V is naturally zero at V=0
+  const f0    = getF0();
+  const g     = fvals.map(v => v - f0);
+  const gnorm = normalizeByMax(g);
+  if (gnorm.every(v => v === 0)) {
+    setStatus('Target function (after subtracting f(0)) is zero everywhere in the given range.', 'error');
     return;
   }
 
   const N = riValues.length;
+  const rmin = getRmin(), rmax = getRmax();
 
   function objective(s) {
-    const ri   = s.map(si => Math.exp(si));
+    const ri   = s.map(si => rFromS(si, rmin, rmax));
     const Iarr = circuitIV(Vgrid, R0, Vth, ri);
     const Imx  = Iarr.reduce((m, x) => Math.max(m, x), -Infinity);
     if (!isFinite(Imx) || Imx <= 0) return 1e12;
     const Inorm = Iarr.map(I => I / Imx);
     let loss = 0;
     for (let k = 0; k < Vgrid.length; k++) {
-      const d = Inorm[k] - fnorm[k];
+      const d = Inorm[k] - gnorm[k];
       loss += d * d;
     }
     return loss;
+  }
+
+  // Convert current r values to sigmoid space (clamped into the fit range)
+  function clampedS(r) {
+    return sFromR(Math.max(rmin * 1.001, Math.min(rmax * 0.999, r)), rmin, rmax);
   }
 
   const btn = document.getElementById('fit-btn');
@@ -353,17 +401,23 @@ function runFit() {
 
   setTimeout(() => {
     try {
-      // Build list of starting points
-      const starts = [riValues.map(r => Math.log(r))]; // current values first
+      const lrmin = Math.log(rmin), lrmax = Math.log(rmax);
+      const geoMid = Math.exp(0.5 * (lrmin + lrmax));
+
+      // Build list of starting points in sigmoid space
+      const starts = [riValues.map(clampedS)]; // current values first
       if (multiRestart) {
-        // 7 additional random starts in log-space
+        // Random starts: uniform in sigmoid input space (covers full bounded range)
         for (let k = 0; k < 7; k++) {
-          starts.push(Array.from({length: N}, () => (Math.random() * 5 - 1) * Math.LN10));
+          starts.push(Array.from({length: N}, () => Math.random() * 12 - 6));
         }
-        // A few structured starts
-        starts.push(Array.from({length: N}, (_, i) => Math.log(1 + i)));
-        starts.push(Array.from({length: N}, (_, i) => Math.log(0.1 * (i + 1))));
-        starts.push(Array.from({length: N}, () => 0)); // all r=1
+        // Geometric sequence from rmin to rmax
+        starts.push(Array.from({length: N}, (_, i) =>
+          sFromR(Math.exp(lrmin + (lrmax - lrmin) * (i + 0.5) / N), rmin, rmax)));
+        // All at geometric midpoint
+        starts.push(Array.from({length: N}, () => sFromR(geoMid, rmin, rmax)));
+        // All at r=1 (if in range), else clamped
+        starts.push(Array.from({length: N}, () => clampedS(1)));
       }
 
       let best = null;
@@ -372,7 +426,7 @@ function runFit() {
         if (!best || res.value < best.value) best = res;
       }
 
-      riValues = best.x.map(s => Math.exp(s));
+      riValues = best.x.map(s => rFromS(s, rmin, rmax));
       renderRiInputs();
       updatePlot();
 
@@ -410,20 +464,34 @@ function updatePlot() {
   }
 
   const Iarr  = circuitIV(Vgrid, R0, Vth, riValues);
-  const fnorm = normalizeByMax(fvals);
   const Inorm = normalizeByMax(Iarr);
 
-  // Compute pointwise residual
-  const residual = Vgrid.map((_, k) => Inorm[k]/fnorm[k] - fnorm[k]/fnorm[k]);
+  // Shift f by f(0), normalize the shifted version, then add the DC offset back
+  const f0    = getF0();
+  updateF0Display(f0);
+  const g     = fvals.map(v => v - f0);
+  const gmax  = g.reduce((m, x) => Math.max(m, x), -Infinity);
+  const gnorm = (!isFinite(gmax) || gmax === 0) ? g.map(() => 0) : g.map(x => x / gmax);
+  const c     = (isFinite(gmax) && gmax !== 0) ? f0 / gmax : 0; // normalized DC offset
+
+  // Adding c back puts both curves on the same footing as the original f(V)/gmax
+  const circuitDisplay = Inorm.map(x => x + c);
+  const targetDisplay  = gnorm.map(x => x + c); // = f(V) / gmax
+
+  // Fractional residual using the offset-corrected denominator
+  const residual = Vgrid.map((_, k) => {
+    const denom = targetDisplay[k];
+    return (denom !== 0) ? (circuitDisplay[k] - denom) / denom : 0;
+  });
 
   const traces = [
     {
-      x: Vgrid, y: Inorm,
+      x: Vgrid, y: circuitDisplay,
       mode: 'lines', name: 'Circuit I(V) (normalized)',
       line: { color: '#2980b9', width: 2.5 }
     },
     {
-      x: Vgrid, y: fnorm,
+      x: Vgrid, y: targetDisplay,
       mode: 'lines', name: 'Target f(V) (normalized)',
       line: { color: '#e74c3c', width: 2, dash: 'dash' }
     },
@@ -509,10 +577,12 @@ function renderRiInputs() {
     lbl.className = 'ri-label';
     lbl.innerHTML = `r<sub>${i+1}</sub>`;
 
-    // Log10 slider: r from 10^-2 to 10^3
+    // Log10 slider spanning the fit range
+    const rmin = getRmin(), rmax = getRmax();
+    const smin = Math.log10(rmin).toFixed(4), smax = Math.log10(rmax).toFixed(4);
     const slider = document.createElement('input');
     slider.type = 'range';
-    slider.min = '-2'; slider.max = '3'; slider.step = '0.001';
+    slider.min = smin; slider.max = smax; slider.step = '0.001';
     slider.value = clampLog(r);
 
     const numInp = document.createElement('input');
@@ -553,7 +623,8 @@ function renderRiInputs() {
 }
 
 function clampLog(r) {
-  return Math.max(-2, Math.min(3, Math.log10(Math.max(r, 1e-9)))).toFixed(6);
+  const rmin = getRmin(), rmax = getRmax();
+  return Math.max(Math.log10(rmin), Math.min(Math.log10(rmax), Math.log10(Math.max(r, 1e-9)))).toFixed(6);
 }
 
 // ============================================================
@@ -562,6 +633,13 @@ function clampLog(r) {
 
 ['R0','Vth','func','vmin','vmax','npoints'].forEach(id => {
   document.getElementById(id).addEventListener('input', updatePlot);
+});
+// Re-render sliders when fit bounds change (so their ranges stay in sync)
+['rmin-fit','rmax-fit'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    renderRiInputs();
+    updatePlot();
+  });
 });
 
 // ============================================================
