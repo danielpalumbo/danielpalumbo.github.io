@@ -10,16 +10,9 @@ redirect_from:
 
 Links: [CV](https://www.overleaf.com/read/bccjjmwfwvhg), [Publication List](https://www.overleaf.com/read/fcxyvsjdhcxh) [ADS Library](https://ui.adsabs.harvard.edu/public-libraries/aASJT2ZbRme_hwqW-v1UkQ).
 
-Hello there, and welcome! I am a postdoctoral fellow at the Black Hole Initiative. I work closely with the Event Horizon Telescope, particularly in providing theoretical analyses of EHT data, and in shaping the longer-term science vision of next-generation EHT expansions. I am also the Simulations Lead and the Photon Ring Science Co-Lead for the Black Hole Explorer mission. Much of my work interfaces very closely with computational efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets? Can we see light itself orbit these objects?
+Hello there, and welcome! I am a Clay Fellow of the Smithsonian Astrophysical Observatory. I work closely with the Event Horizon Telescope, particularly in providing theoretical analyses of EHT data, and in shaping the longer-term science vision of next-generation EHT expansions. I am also the Simulations Lead and the Photon Ring Science Co-Lead for the Black Hole Explorer mission. Much of my work interfaces very closely with computational efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets? Can we see light itself orbit these objects?
 
-My most recent work has focused on the signatures of supermassive black hole spin in the twisting of polarized light emitted near its horizon. My results show a promising, linear relationship with spin that will help us measure the spin of Messier 87\* and reinforce the (much easier) spin measurement case for Sagittarius A\*. Meanwhile, I remain optimistic that the photon ring detection experiment I proposed in 2023 (and that has since been fleshed out in amazing work by my students!) will show the first hints of the photon ring in ground-based observations this decade.
-
-I recently built a tool for converting interferometric data (which are spatial Fourier data) into binaural sound data (that is, temporal Fourier data) to help convey our observations to those with limited sight. The tool is extremely simple, and is on my Github [here](https://github.com/danielpalumbo/VLBIsonification). Give it a try!
-
-I am always happy to strike up new collaborations across institutions, and to talk to students considering entering the field or working with the Event Horizon Telescope, so don't be a stranger! 
-
-Before you go, consider signing on to the [Astronomy and Astrophysics LGBTQIA+ Outlist or Ally List](https://astro-outlist.github.io/) to help make astronomy a bit more welcoming.
-
+I've recently begun working with the AstroAI group of the Center for Astrophysics | Harvard & Smithsonian in order to fully map the 4d distribution of hot plasma near astrophysical black holes using techniques like Gaussian splatting. I am generally excited about the unique access black holes provide to their surroundings, as the strong lensing of light allows us to view individual emitters from many angles. 
 
 <!-- 
 
