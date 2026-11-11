@@ -8,11 +8,15 @@ redirect_from:
   - /about.html
 ---
 
+This page is under construction, check back later!
+
+<!--
 Links: [CV](https://www.overleaf.com/read/bccjjmwfwvhg), [Publication List](https://www.overleaf.com/read/fcxyvsjdhcxh) [ADS Library](https://ui.adsabs.harvard.edu/public-libraries/aASJT2ZbRme_hwqW-v1UkQ).
 
 Hello there, and welcome! I am a Clay Fellow of the Smithsonian Astrophysical Observatory. I work closely with the Event Horizon Telescope, particularly in providing theoretical analyses of EHT data, and in shaping the longer-term science vision of next-generation EHT expansions. I am also the Simulations Lead and the Photon Ring Science Co-Lead for the Black Hole Explorer mission. Much of my work interfaces very closely with computational efforts in general relativistic magnetohydrodynamical simulations. I develop physical insights into tools for connecting observable properties of the black hole accretion flow system to some of the deepest problems in astrophysics: how rapidly are supermassive black holes spinning? Do they spin up or down over their lifetimes? Are black holes magnetically arrested? How do they launch relativistic jets? Can we see light itself orbit these objects?
 
 I've recently begun working with the AstroAI group of the Center for Astrophysics | Harvard & Smithsonian in order to fully map the 4d distribution of hot plasma near astrophysical black holes using techniques like Gaussian splatting. I am generally excited about the unique access black holes provide to their surroundings, as the strong lensing of light allows us to view individual emitters from many angles. 
+-->
 
 <!-- 
 
