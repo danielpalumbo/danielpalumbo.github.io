@@ -83,7 +83,7 @@ author:
   name             : "Daniel Palumbo"
   avatar           : "Palumbo_Headshot.jpg"
   bio              : "Senior Scientist"
-  location         : "Cambridge, MA"
+  location         : #"Cambridge, MA"
   employer         :
   pubmed           : #"https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
   googlescholar    : "https://scholar.google.com/citations?user=qri7fksAAAAJ&hl=en"

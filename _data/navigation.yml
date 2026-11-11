@@ -3,14 +3,14 @@ main:
   # - title: "Publications"
   #   url: /publications/
   
- - title: "Galactic Petri Dish"
-   url: /petri.html
+ # - title: "Galactic Petri Dish"
+ #   url: /petri.html
 
- - title: "Fun With Laser Sails"
-   url: /laser_sail.html
+ # - title: "Fun With Laser Sails"
+ #   url: /laser_sail.html
    
- - title: "Fun With I-V Curves"
-   url: /iv_curve_fitter.html    
+ # - title: "Fun With I-V Curves"
+ #   url: /iv_curve_fitter.html    
 
   # - title: "Teaching"
   #   url: /teaching/    
