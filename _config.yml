@@ -10,7 +10,7 @@ locale                   : "en-US"
 title                    : "Daniel Palumbo"
 title_separator          : "-"
 name                     : &name "Daniel Palumbo"
-description              : &description "Black Hole Astrophysicist"
+description              : #&description "Black Hole Astrophysicist"
 url                      : https://danielpalumbo.github.io # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : "" # the subpath of your site, e.g. "/blog"
 repository               : "danielpalumbo/danielpalumbo.github.io"
@@ -82,12 +82,12 @@ analytics:
 author:
   name             : "Daniel Palumbo"
   avatar           : "Palumbo_Headshot.jpg"
-  bio              : "Fellow at the Black Hole Initiative and data scientist with the Event Horizon Telescope."
-  location         : "Harvard University"
+  bio              : "Senior Scientist"
+  location         : "Cambridge, MA"
   employer         :
   pubmed           : #"https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
   googlescholar    : "https://scholar.google.com/citations?user=qri7fksAAAAJ&hl=en"
-  email            : "daniel.palumbo@cfa.harvard.edu"
+  email            : #"daniel.palumbo@cfa.harvard.edu"
   researchgate     :  # example: "https://www.researchgate.net/profile/yourprofile"
   uri              :
   bitbucket        :
